@@ -2,6 +2,7 @@
 #include <HTTPSRedirect.h>
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
+#include <ArduinoJson.h>
 
 // Enter network credentials:
 const char* ssid = "NTHU_PME_S16";
@@ -121,6 +122,50 @@ void sendData(int fsr_value, int stay){
   }
 }
 
+void GetData(){
+  static bool flag = false;
+  if(!flag){
+    client = new HTTPSRedirect(httpsPort);
+    client->setInsecure();
+    flag = true;
+    client->setPrintResponseBody(true);
+    client->setContentTypeHeader("application/json");
+  }
+  if(client != nullptr){
+    if(!client->connected()){
+      client->connect(host, httpsPort);
+    }
+  }
+  else{
+    Serial.println("Error creating client object!");
+  }
+
+  Serial.println("Publishing data...");
+  Serial.println(payload);
+  if(client->GET(url + "?data=100", host)){
+  }
+  else{
+    Serial.println("Error while connecting");
+  }
+}
+
+void ParseData(String json){
+
+  StaticJsonDocument<128> doc;
+
+  DeserializationError error = deserializeJson(doc, json);
+
+  if (error) {
+    Serial.println(error.f_str());
+    return;
+  }
+
+  int value_1 = doc["return_value_1"]; // 1
+  int value_2 = doc["return_value_2"]; // 2
+  int value_3 = doc["return_value_3"]; // 3
+
+}
+
 void loop(){
   
   int fsr_value = analogRead(fsr_pin); // read FSR
@@ -139,6 +184,7 @@ void loop(){
     digitalWrite(led_pin, LOW);
     count = 0;
   }
+
   Serial.println(fsr_value);
   Serial.println(led_value);
   Serial.println("-------------");
